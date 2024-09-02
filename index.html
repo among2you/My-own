@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Realtime Data Sync</title>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js"></script>
+</head>
+<body>
+    <h1>Realtime Data Sync</h1>
+
+    <textarea id="dataInput" placeholder="Enter some data here..." rows="10" cols="30"></textarea><br><br>
+    <button onclick="saveData()">Save Data</button>
+
+    <h2>Loaded Data</h2>
+    <pre id="displayData"></pre>
+
+    <script>
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            databaseURL: "https://YOUR_PROJECT_ID.firebaseio.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        // Initialize Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        // Reference to the database path
+        const dataRef = database.ref('sharedData');
+
+        // Save data to Firebase
+        function saveData() {
+            const data = document.getElementById('dataInput').value;
+            dataRef.set(data);
+        }
+
+        // Load data from Firebase in real-time
+        dataRef.on('value', (snapshot) => {
+            const data = snapshot.val();
+            document.getElementById('displayData').textContent = data ? data : 'No data found.';
+        });
+    </script>
+</body>
+</html>
