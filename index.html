@@ -3,22 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Realtime Data Sync with Firebase</title>
+    <title>Realtime Messaging with Firebase</title>
     <!-- Firebase App (the core Firebase SDK) -->
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
     <!-- Firebase Realtime Database SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+    <!-- Firebase Storage SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
 </head>
 <body>
-    <h1>Realtime Data Sync with Firebase</h1>
+    <h1>Realtime Messaging with Firebase</h1>
 
-    <!-- Input box to save data -->
-    <textarea id="saveInput" placeholder="Enter data to save..." rows="5" cols="30"></textarea><br><br>
-    <button onclick="saveData()">Save Data</button>
+    <!-- Form to send message and upload image -->
+    <textarea id="messageInput" placeholder="Enter your message..." rows="5" cols="30"></textarea><br><br>
+    <input type="file" id="imageInput" accept="image/*"><br><br>
+    <button onclick="sendMessage()">Send</button>
 
-    <h2>Loaded Data</h2>
-    <!-- Input box to load and display data -->
-    <pre id="displayData"></pre>
+    <h2>Messages</h2>
+    <div id="messages"></div>
 
     <script>
         // Your web app's Firebase configuration
@@ -36,20 +38,69 @@
         // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
+        const storage = firebase.storage();
 
-        // Reference to the database path
-        const dataRef = database.ref('sharedData');
+        // Reference to the database path for messages
+        const messagesRef = database.ref('messages');
 
-        // Function to save data to Firebase
-        function saveData() {
-            const data = document.getElementById('saveInput').value;
-            dataRef.set(data);
+        // Function to send a message or image
+        function sendMessage() {
+            const message = document.getElementById('messageInput').value;
+            const imageInput = document.getElementById('imageInput');
+            const imageFile = imageInput.files[0];
+
+            if (imageFile) {
+                // Upload image to Firebase Storage
+                const storageRef = storage.ref('images/' + imageFile.name);
+                storageRef.put(imageFile).then((snapshot) => {
+                    // Get image URL after upload
+                    snapshot.ref.getDownloadURL().then((url) => {
+                        // Save message with image URL to the database
+                        messagesRef.push({
+                            message: message,
+                            imageUrl: url
+                        });
+                    });
+                });
+            } else {
+                // Save message without image to the database
+                messagesRef.push({
+                    message: message
+                });
+            }
+
+            // Clear the input fields
+            document.getElementById('messageInput').value = '';
+            document.getElementById('imageInput').value = '';
         }
 
-        // Function to load data from Firebase in real-time
-        dataRef.on('value', (snapshot) => {
-            const data = snapshot.val();
-            document.getElementById('displayData').textContent = data ? data : 'No data found.';
+        // Function to display messages in real-time
+        messagesRef.on('value', (snapshot) => {
+            const messagesDiv = document.getElementById('messages');
+            messagesDiv.innerHTML = ''; // Clear previous messages
+
+            snapshot.forEach((childSnapshot) => {
+                const childData = childSnapshot.val();
+
+                // Create message element
+                const messageElement = document.createElement('div');
+                messageElement.style.marginBottom = '20px';
+
+                if (childData.message) {
+                    const messageText = document.createElement('p');
+                    messageText.textContent = childData.message;
+                    messageElement.appendChild(messageText);
+                }
+
+                if (childData.imageUrl) {
+                    const messageImage = document.createElement('img');
+                    messageImage.src = childData.imageUrl;
+                    messageImage.style.maxWidth = '200px';
+                    messageElement.appendChild(messageImage);
+                }
+
+                messagesDiv.appendChild(messageElement);
+            });
         });
     </script>
 </body>
